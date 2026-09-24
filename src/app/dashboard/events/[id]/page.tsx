@@ -8,6 +8,7 @@ import { signAndSubmit } from '@/lib/onchain';
 import type { EventRecord, TicketType } from '@/lib/types';
 import { FormError } from '@/components/form-error';
 import { WalletConnectButton } from '@/components/wallet-connect-button';
+import { Button } from '@/components/button';
 
 export default function EventPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -159,13 +160,13 @@ export default function EventPage({ params }: { params: Promise<{ id: string }> 
       {notice && <p className="mt-6 text-sm text-gradient font-medium">{notice}</p>}
 
       {event.status === 'DRAFT' && (
-        <button
+        <Button
           onClick={handlePublish}
-          disabled={publishing}
-          className="mt-6 rounded-md bg-gradient-sunset px-4 py-2 font-medium text-white shadow-lg shadow-violet/20 hover:opacity-90 disabled:opacity-50"
+          loading={publishing}
+          className="mt-6"
         >
           {publishing ? 'Publishing…' : 'Publish event on-chain'}
-        </button>
+        </Button>
       )}
 
       <h2 className="mt-10 font-heading text-xl font-bold">Ticket types</h2>
@@ -220,13 +221,13 @@ export default function EventPage({ params }: { params: Promise<{ id: string }> 
             className="w-28 rounded-md border border-border bg-surface px-3 py-2"
           />
         </label>
-        <button
+        <Button
           type="submit"
-          disabled={savingTicketType}
-          className="rounded-md border border-border px-4 py-2 font-medium hover:bg-surface disabled:opacity-50"
+          loading={savingTicketType}
+          variant="secondary"
         >
           {savingTicketType ? 'Adding…' : 'Add ticket type'}
-        </button>
+        </Button>
       </form>
 
       {event.ticketTypes && event.ticketTypes.length > 0 && (
@@ -268,13 +269,13 @@ export default function EventPage({ params }: { params: Promise<{ id: string }> 
                 className="rounded-md border border-border bg-surface px-3 py-2"
               />
             </label>
-            <button
+            <Button
               type="submit"
-              disabled={issuing}
-              className="self-start rounded-md bg-gradient-sunset px-4 py-2 font-medium text-white shadow-lg shadow-violet/20 hover:opacity-90 disabled:opacity-50"
+              loading={issuing}
+              className="self-start"
             >
               {issuing ? 'Issuing…' : 'Issue ticket'}
-            </button>
+            </Button>
           </form>
         </>
       )}

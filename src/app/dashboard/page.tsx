@@ -8,6 +8,7 @@ import { apiFetch, ApiError } from '@/lib/api';
 import { INDUSTRIES, INDUSTRY_LABELS, type Organization } from '@/lib/types';
 import { FormError } from '@/components/form-error';
 import { WalletConnectButton } from '@/components/wallet-connect-button';
+import { Button } from '@/components/button';
 
 export default function DashboardPage() {
   const { user, loading } = useAuth();
@@ -139,13 +140,13 @@ export default function DashboardPage() {
             your wallet above to prefill your own address.
           </span>
         </label>
-        <button
+        <Button
           type="submit"
-          disabled={submitting}
-          className="self-start rounded-md bg-gradient-sunset px-4 py-2 font-medium text-white shadow-lg shadow-violet/20 hover:opacity-90 disabled:opacity-50"
+          loading={submitting}
+          className="self-start"
         >
           {submitting ? 'Creating…' : 'Create organization'}
-        </button>
+        </Button>
       </form>
     </div>
   );

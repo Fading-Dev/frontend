@@ -9,6 +9,7 @@ import { ApiError } from '@/lib/api';
 import { FormError } from '@/components/form-error';
 import { AuthLayout } from '@/components/auth-layout';
 import { TextField } from '@/components/text-field';
+import { Button } from '@/components/button';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -58,13 +59,14 @@ export default function LoginPage() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
-        <button
+        <Button
           type="submit"
-          disabled={submitting}
-          className="mt-2 rounded-xl bg-gradient-sunset px-4 py-3 font-medium text-white shadow-lg shadow-violet/20 transition-opacity hover:opacity-90 disabled:opacity-50"
+          loading={submitting}
+          size="lg"
+          className="mt-2"
         >
           {submitting ? 'Logging in…' : 'Log in'}
-        </button>
+        </Button>
       </form>
       <p className="mt-6 text-center text-sm text-muted">
         Don’t have an account?{' '}
