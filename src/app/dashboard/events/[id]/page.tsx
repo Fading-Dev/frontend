@@ -10,6 +10,7 @@ import { FormError } from '@/components/form-error';
 import { WalletConnectButton } from '@/components/wallet-connect-button';
 import { Button } from '@/components/button';
 import { Breadcrumbs } from '@/components/breadcrumbs';
+import { EventDetails } from '@/components/event-details';
 
 export default function EventPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -159,6 +160,8 @@ export default function EventPage({ params }: { params: Promise<{ id: string }> 
           {event.status}
         </span>
       </div>
+
+      <EventDetails event={event} />
 
       <div className="mt-4">
         <WalletConnectButton />
