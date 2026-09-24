@@ -7,6 +7,7 @@ import { apiFetch, ApiError } from '@/lib/api';
 import { signAndSubmit } from '@/lib/onchain';
 import type { Ticket } from '@/lib/types';
 import { FormError } from '@/components/form-error';
+import { CopyButton } from '@/components/copy-button';
 import { WalletConnectButton } from '@/components/wallet-connect-button';
 
 type ActiveAction = { ticketId: string; type: 'transfer' | 'resell' } | null;
@@ -171,9 +172,10 @@ export default function MyTicketsPage() {
                 </span>
               </div>
 
-              <p className="mt-3 text-xs text-muted">
+              <p className="mt-3 flex items-center gap-1 text-xs text-muted">
                 Gate code:{' '}
                 <span className="font-mono text-foreground select-all">{ticket.qrSecret}</span>
+                <CopyButton value={ticket.qrSecret} label="Copy gate code" />
               </p>
 
               {ticket.status === 'VALID' && (

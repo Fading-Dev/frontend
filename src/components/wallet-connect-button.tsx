@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { apiFetch, ApiError } from '@/lib/api';
 import { connectWallet, WalletError } from '@/lib/wallet';
+import { CopyButton } from './copy-button';
 
 export function WalletConnectButton() {
   const { user, refresh } = useAuth();
@@ -14,11 +15,12 @@ export function WalletConnectButton() {
 
   if (user.stellarPublicKey) {
     return (
-      <p className="text-sm text-muted">
+      <p className="flex items-center gap-1 text-sm text-muted">
         Wallet connected:{' '}
-        <span className="font-mono text-foreground">
+        <span className="font-mono text-foreground" title={user.stellarPublicKey}>
           {user.stellarPublicKey.slice(0, 6)}…{user.stellarPublicKey.slice(-6)}
         </span>
+        <CopyButton value={user.stellarPublicKey} label="Copy wallet address" />
       </p>
     );
   }
