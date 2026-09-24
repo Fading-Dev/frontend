@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/auth-context';
 import { apiFetch, ApiError } from '@/lib/api';
 import { INDUSTRIES, INDUSTRY_LABELS, type EventRecord, type Organization } from '@/lib/types';
 import { FormError } from '@/components/form-error';
+import { Button } from '@/components/button';
 
 export default function OrganizationPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -135,13 +136,13 @@ export default function OrganizationPage({ params }: { params: Promise<{ id: str
             className="rounded-md border border-border bg-surface px-3 py-2"
           />
         </label>
-        <button
+        <Button
           type="submit"
-          disabled={submitting}
-          className="self-start rounded-md bg-gradient-sunset px-4 py-2 font-medium text-white shadow-lg shadow-violet/20 hover:opacity-90 disabled:opacity-50"
+          loading={submitting}
+          className="self-start"
         >
           {submitting ? 'Creating…' : 'Create event'}
-        </button>
+        </Button>
       </form>
     </div>
   );

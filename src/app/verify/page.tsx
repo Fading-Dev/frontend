@@ -7,6 +7,7 @@ import { apiFetch, ApiError } from '@/lib/api';
 import { signAndSubmit } from '@/lib/onchain';
 import { FormError } from '@/components/form-error';
 import { WalletConnectButton } from '@/components/wallet-connect-button';
+import { Button } from '@/components/button';
 
 interface VerifyResult {
   ticketId: string;
@@ -120,13 +121,12 @@ export default function VerifyPage() {
           onChange={(e) => setCode(e.target.value)}
           className="flex-1 rounded-md border border-border bg-surface px-3 py-2 font-mono text-sm"
         />
-        <button
+        <Button
           type="submit"
-          disabled={checking}
-          className="rounded-md bg-gradient-sunset px-4 py-2 font-medium text-white shadow-lg shadow-violet/20 hover:opacity-90 disabled:opacity-50"
+          loading={checking}
         >
           {checking ? 'Checking…' : 'Verify'}
-        </button>
+        </Button>
       </form>
 
       {error && (
@@ -152,22 +152,23 @@ export default function VerifyPage() {
           </dl>
           <div className="mt-4 flex gap-3">
             {result.status === 'VALID' && (
-              <button
+              <Button
                 onClick={handleCheckIn}
-                disabled={actionBusy}
-                className="rounded-md bg-gradient-sunset px-4 py-2 text-sm font-medium text-white shadow-lg shadow-violet/20 hover:opacity-90 disabled:opacity-50"
+                loading={actionBusy}
+                className="text-sm"
               >
                 {actionBusy ? 'Working…' : 'Check in'}
-              </button>
+              </Button>
             )}
             {result.status !== 'REVOKED' && (
-              <button
+              <Button
                 onClick={handleRevoke}
-                disabled={actionBusy}
-                className="rounded-md border border-red-900/50 px-4 py-2 text-sm font-medium text-red-300 hover:bg-red-950/30 disabled:opacity-50"
+                loading={actionBusy}
+                variant="danger"
+                className="text-sm"
               >
                 {actionBusy ? 'Working…' : 'Revoke'}
-              </button>
+              </Button>
             )}
           </div>
         </div>

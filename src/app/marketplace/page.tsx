@@ -8,6 +8,7 @@ import { signAndSubmit } from '@/lib/onchain';
 import type { ResaleListing } from '@/lib/types';
 import { FormError } from '@/components/form-error';
 import { WalletConnectButton } from '@/components/wallet-connect-button';
+import { Button } from '@/components/button';
 
 export default function MarketplacePage() {
   const { user, loading } = useAuth();
@@ -97,13 +98,13 @@ export default function MarketplacePage() {
               </div>
               <div className="flex items-center gap-4">
                 <span className="font-mono">{listing.price}</span>
-                <button
+                <Button
                   onClick={() => handleBuy(listing.ticketId)}
-                  disabled={buyingTicketId === listing.ticketId}
-                  className="rounded-md bg-gradient-sunset px-4 py-2 text-sm font-medium text-white shadow-lg shadow-violet/20 hover:opacity-90 disabled:opacity-50"
+                  loading={buyingTicketId === listing.ticketId}
+                  className="text-sm"
                 >
                   {buyingTicketId === listing.ticketId ? 'Buying…' : 'Buy'}
-                </button>
+                </Button>
               </div>
             </li>
           ))}

@@ -9,6 +9,7 @@ import type { Ticket } from '@/lib/types';
 import { FormError } from '@/components/form-error';
 import { CopyButton } from '@/components/copy-button';
 import { WalletConnectButton } from '@/components/wallet-connect-button';
+import { Button } from '@/components/button';
 
 type ActiveAction = { ticketId: string; type: 'transfer' | 'resell' } | null;
 
@@ -225,13 +226,13 @@ export default function MyTicketsPage() {
                     onChange={(e) => setTransferEmail(e.target.value)}
                     className="flex-1 rounded-md border border-border bg-surface px-3 py-2 text-sm"
                   />
-                  <button
+                  <Button
                     onClick={() => handleTransfer(ticket.id)}
-                    disabled={busyTicketId === ticket.id}
-                    className="rounded-md bg-gradient-sunset px-3 py-2 text-sm font-medium text-white shadow-lg shadow-violet/20 hover:opacity-90 disabled:opacity-50"
+                    loading={busyTicketId === ticket.id}
+                    size="sm"
                   >
                     {busyTicketId === ticket.id ? 'Sending…' : 'Send'}
-                  </button>
+                  </Button>
                 </div>
               )}
               {activeAction?.ticketId === ticket.id && activeAction.type === 'resell' && (
@@ -243,13 +244,13 @@ export default function MyTicketsPage() {
                     onChange={(e) => setResalePrice(e.target.value)}
                     className="flex-1 rounded-md border border-border bg-surface px-3 py-2 text-sm"
                   />
-                  <button
+                  <Button
                     onClick={() => handleListForResale(ticket.id)}
-                    disabled={busyTicketId === ticket.id}
-                    className="rounded-md bg-gradient-sunset px-3 py-2 text-sm font-medium text-white shadow-lg shadow-violet/20 hover:opacity-90 disabled:opacity-50"
+                    loading={busyTicketId === ticket.id}
+                    size="sm"
                   >
                     {busyTicketId === ticket.id ? 'Listing…' : 'List'}
-                  </button>
+                  </Button>
                 </div>
               )}
             </li>
