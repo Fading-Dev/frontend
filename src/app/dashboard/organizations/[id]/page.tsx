@@ -8,6 +8,7 @@ import { apiFetch, ApiError } from '@/lib/api';
 import { INDUSTRIES, INDUSTRY_LABELS, type EventRecord, type Organization } from '@/lib/types';
 import { FormError } from '@/components/form-error';
 import { Button } from '@/components/button';
+import { Breadcrumbs } from '@/components/breadcrumbs';
 
 export default function OrganizationPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -66,6 +67,10 @@ export default function OrganizationPage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-16">
+      <Breadcrumbs
+        className="mb-6"
+        items={[{ label: 'Dashboard', href: '/dashboard' }, { label: org.name }]}
+      />
       <p className="text-sm text-muted">{INDUSTRY_LABELS[org.industry]}</p>
       <h1 className="font-heading text-3xl font-bold">{org.name}</h1>
 

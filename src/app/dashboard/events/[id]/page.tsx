@@ -9,6 +9,7 @@ import type { EventRecord, TicketType } from '@/lib/types';
 import { FormError } from '@/components/form-error';
 import { WalletConnectButton } from '@/components/wallet-connect-button';
 import { Button } from '@/components/button';
+import { Breadcrumbs } from '@/components/breadcrumbs';
 
 export default function EventPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -140,6 +141,17 @@ export default function EventPage({ params }: { params: Promise<{ id: string }> 
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-16">
+      <Breadcrumbs
+        className="mb-6"
+        items={[
+          { label: 'Dashboard', href: '/dashboard' },
+          {
+            label: event.organization?.name ?? 'Organization',
+            href: `/dashboard/organizations/${event.organizationId}`,
+          },
+          { label: event.name },
+        ]}
+      />
       <p className="text-sm text-muted">{event.venue}</p>
       <div className="mt-1 flex items-center gap-3">
         <h1 className="font-heading text-3xl font-bold">{event.name}</h1>
