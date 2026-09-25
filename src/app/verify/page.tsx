@@ -8,6 +8,7 @@ import { signAndSubmit } from '@/lib/onchain';
 import { FormError } from '@/components/form-error';
 import { WalletConnectButton } from '@/components/wallet-connect-button';
 import { Button } from '@/components/button';
+import { QrScanner } from '@/components/qr-scanner';
 import { STATUS_LABELS, STATUS_STYLES } from '@/components/status-badge';
 
 interface VerifyResult {
@@ -28,24 +29,35 @@ export default function VerifyPage() {
   const [error, setError] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
   const [actionBusy, setActionBusy] = useState(false);
+  const [scanning, setScanning] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) router.push('/login');
   }, [loading, user, router]);
 
-  async function handleLookup(e: React.FormEvent) {
-    e.preventDefault();
+  async function lookup(ticketCode: string) {
     setError(null);
     setResult(null);
     setChecking(true);
     try {
-      const res = await apiFetch<VerifyResult>(`/tickets/verify/${encodeURIComponent(code)}`);
+      const res = await apiFetch<VerifyResult>(`/tickets/verify/${encodeURIComponent(ticketCode)}`);
       setResult(res);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not verify this ticket.');
     } finally {
       setChecking(false);
     }
+  }
+
+  function handleLookup(e: React.FormEvent) {
+    e.preventDefault();
+    void lookup(code);
+  }
+
+  function handleScanned(scanned: string) {
+    setScanning(false);
+    setCode(scanned);
+    void lookup(scanned);
   }
 
   async function handleCheckIn() {
@@ -122,6 +134,21 @@ export default function VerifyPage() {
           {checking ? 'Checking…' : 'Verify'}
         </Button>
       </form>
+
+      <div className="mt-3">
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => setScanning((on) => !on)}
+        >
+          {scanning ? 'Stop scanning' : 'Scan with camera'}
+        </Button>
+      </div>
+      {scanning && (
+        <div className="mt-3">
+          <QrScanner onDetected={handleScanned} />
+        </div>
+      )}
 
       {error && (
         <div className="mt-6">
