@@ -23,6 +23,7 @@ export default function OrganizationPage({ params }: { params: Promise<{ id: str
   const [category, setCategory] = useState<(typeof INDUSTRIES)[number]>('CONCERTS');
   const [venue, setVenue] = useState('');
   const [startsAt, setStartsAt] = useState('');
+  const [endsAt, setEndsAt] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -46,16 +47,29 @@ export default function OrganizationPage({ params }: { params: Promise<{ id: str
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    if (endsAt && new Date(endsAt) <= new Date(startsAt)) {
+      setError('Ends at must be after Starts at');
+      return;
+    }
+
     setSubmitting(true);
     try {
       const event = await apiFetch<EventRecord>(`/organizations/${id}/events`, {
         method: 'POST',
-        body: { name, category, venue, startsAt: new Date(startsAt).toISOString() },
+        body: {
+          name,
+          category,
+          venue,
+          startsAt: new Date(startsAt).toISOString(),
+          ...(endsAt ? { endsAt: new Date(endsAt).toISOString() } : {}),
+        },
       });
       setEvents((prev) => [event, ...prev]);
       setName('');
       setVenue('');
       setStartsAt('');
+      setEndsAt('');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not create the event.');
     } finally {
@@ -138,6 +152,15 @@ export default function OrganizationPage({ params }: { params: Promise<{ id: str
             type="datetime-local"
             value={startsAt}
             onChange={(e) => setStartsAt(e.target.value)}
+            className="rounded-md border border-border bg-surface px-3 py-2"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          Ends at
+          <input
+            type="datetime-local"
+            value={endsAt}
+            onChange={(e) => setEndsAt(e.target.value)}
             className="rounded-md border border-border bg-surface px-3 py-2"
           />
         </label>
