@@ -9,8 +9,10 @@ import type { EventRecord, TicketType } from '@/lib/types';
 import { FormError } from '@/components/form-error';
 import { WalletConnectButton } from '@/components/wallet-connect-button';
 import { Button } from '@/components/button';
+import { StatusBadge } from '@/components/status-badge';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import { EventDetails } from '@/components/event-details';
+import { buildPublishSummary } from '@/lib/event-details';
 
 export default function EventPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -28,6 +30,7 @@ export default function EventPage({ params }: { params: Promise<{ id: string }> 
   const [savingTicketType, setSavingTicketType] = useState(false);
 
   const [publishing, setPublishing] = useState(false);
+  const [showPublishReview, setShowPublishReview] = useState(false);
 
   const [issueEmail, setIssueEmail] = useState('');
   const [issueTicketTypeId, setIssueTicketTypeId] = useState('');
@@ -82,6 +85,17 @@ export default function EventPage({ params }: { params: Promise<{ id: string }> 
       return;
     }
     setError(null);
+    setNotice(null);
+    setShowPublishReview(true);
+  }
+
+  async function confirmPublish() {
+    if (!user?.stellarPublicKey || !event) {
+      setError('Connect your organization’s Stellar wallet before publishing.');
+      return;
+    }
+    setError(null);
+    setShowPublishReview(false);
     setPublishing(true);
     try {
       const { unsignedXdr } = await apiFetch<{ unsignedXdr: string }>(`/events/${id}/publish`, {
@@ -156,9 +170,7 @@ export default function EventPage({ params }: { params: Promise<{ id: string }> 
       <p className="text-sm text-muted">{event.venue}</p>
       <div className="mt-1 flex items-center gap-3">
         <h1 className="font-heading text-3xl font-bold">{event.name}</h1>
-        <span className="rounded-full border border-border px-2 py-0.5 text-xs text-muted">
-          {event.status}
-        </span>
+        <StatusBadge status={event.status} />
       </div>
 
       <EventDetails event={event} />
@@ -175,13 +187,32 @@ export default function EventPage({ params }: { params: Promise<{ id: string }> 
       {notice && <p className="mt-6 text-sm text-gradient font-medium">{notice}</p>}
 
       {event.status === 'DRAFT' && (
-        <Button
-          onClick={handlePublish}
-          loading={publishing}
-          className="mt-6"
-        >
-          {publishing ? 'Publishing…' : 'Publish event on-chain'}
-        </Button>
+        <>
+          {!showPublishReview ? (
+            <Button onClick={handlePublish} loading={publishing} className="mt-6">
+              {publishing ? 'Publishing…' : 'Publish event on-chain'}
+            </Button>
+          ) : (
+            <div className="mt-6 rounded-lg border border-border bg-surface p-4">
+              <h2 className="font-heading text-lg font-bold">Confirm event publication</h2>
+              <p className="mt-2 text-sm text-muted">
+                Publishing locks the event parameters on-chain and opens ticket sales. Review the
+                details below before the wallet prompt appears.
+              </p>
+              <pre className="mt-4 whitespace-pre-wrap rounded-md border border-border bg-background p-3 text-sm text-foreground">
+                {buildPublishSummary(event)}
+              </pre>
+              <div className="mt-4 flex flex-wrap gap-3">
+                <Button onClick={confirmPublish} loading={publishing}>
+                  {publishing ? 'Publishing…' : 'Confirm and publish'}
+                </Button>
+                <Button variant="secondary" onClick={() => setShowPublishReview(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       <h2 className="mt-10 font-heading text-xl font-bold">Ticket types</h2>
