@@ -6,14 +6,15 @@
     "node": ">=22"
   },
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "dev": "node api.js && next dev",
+    "build": "node api.js && next build",
+    "start": "node api.js && next start",
     "lint": "eslint",
     "test": "vitest run"
   },
   "dependencies": {
     "@stellar/freighter-api": "^6.0.1",
+    "jsqr": "^1.4.0",
     "lucide-react": "^1.28.0",
     "next": "16.2.12",
     "qrcode": "^1.5.4",
