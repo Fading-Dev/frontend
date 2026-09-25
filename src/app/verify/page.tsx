@@ -8,6 +8,7 @@ import { signAndSubmit } from '@/lib/onchain';
 import { FormError } from '@/components/form-error';
 import { WalletConnectButton } from '@/components/wallet-connect-button';
 import { Button } from '@/components/button';
+import { STATUS_LABELS, STATUS_STYLES } from '@/components/status-badge';
 
 interface VerifyResult {
   ticketId: string;
@@ -18,13 +19,6 @@ interface VerifyResult {
   status: 'VALID' | 'USED' | 'REVOKED' | 'RESALE';
   onChainOwner: string;
 }
-
-const STATUS_STYLES: Record<VerifyResult['status'], string> = {
-  VALID: 'text-emerald-400 border-emerald-900/50 bg-emerald-950/30',
-  USED: 'text-amber-400 border-amber-900/50 bg-amber-950/30',
-  REVOKED: 'text-red-400 border-red-900/50 bg-red-950/30',
-  RESALE: 'text-sky-400 border-sky-900/50 bg-sky-950/30',
-};
 
 export default function VerifyPage() {
   const { user, loading } = useAuth();
@@ -137,7 +131,7 @@ export default function VerifyPage() {
 
       {result && (
         <div className={`mt-6 rounded-lg border p-6 ${STATUS_STYLES[result.status]}`}>
-          <p className="text-lg font-semibold">{result.status}</p>
+          <p className="text-lg font-semibold">{STATUS_LABELS[result.status]}</p>
           <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm text-foreground">
             <dt className="text-muted">Event</dt>
             <dd>{result.eventName}</dd>

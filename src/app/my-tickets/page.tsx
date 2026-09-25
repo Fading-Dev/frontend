@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { apiFetch, ApiError } from '@/lib/api';
@@ -11,6 +11,8 @@ import { FormError } from '@/components/form-error';
 import { CopyButton } from '@/components/copy-button';
 import { WalletConnectButton } from '@/components/wallet-connect-button';
 import { Button } from '@/components/button';
+import { StatusBadge } from '@/components/status-badge';
+import { TicketQr } from '@/components/ticket-qr';
 
 type ActiveAction = { ticketId: string; type: 'transfer' | 'resell' } | null;
 type TransferRecipient = { id: string; name?: string; email?: string };
@@ -20,6 +22,7 @@ export default function MyTicketsPage() {
   const router = useRouter();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loadingTickets, setLoadingTickets] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busyTicketId, setBusyTicketId] = useState<string | null>(null);
@@ -37,8 +40,14 @@ export default function MyTicketsPage() {
   }, [loading, user, router]);
 
   async function loadTickets() {
-    const res = await apiFetch<Ticket[]>('/tickets/mine');
-    setTickets(res);
+    try {
+      const res = await apiFetch<Ticket[]>('/tickets/mine');
+      setTickets(res);
+      setLoadFailed(false);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not load your tickets.');
+      setLoadFailed(true);
+    }
   }
 
   useEffect(() => {
@@ -49,6 +58,21 @@ export default function MyTicketsPage() {
     }
     void run();
   }, [user]);
+
+  async function retryLoad() {
+    setError(null);
+    setLoadingTickets(true);
+    await loadTickets();
+    setLoadingTickets(false);
+  }
+
+  function toggleAction(ticketId: string, type: 'transfer' | 'resell') {
+    setActiveAction((prev) =>
+      prev?.ticketId === ticketId && prev.type === type ? null : { ticketId, type },
+    );
+    setTransferEmail('');
+    setResalePrice('');
+  }
 
   function requireWallet(): string | null {
     if (!user?.stellarPublicKey) {
@@ -79,6 +103,8 @@ export default function MyTicketsPage() {
   }
 
   async function handleTransfer(ticketId: string, recipient: TransferRecipient) {
+  async function handleTransfer(e: FormEvent, ticketId: string) {
+    e.preventDefault();
     const wallet = requireWallet();
     if (!wallet) return;
     setError(null);
@@ -109,6 +135,10 @@ export default function MyTicketsPage() {
 
   async function handleListForResale(ticket: Ticket) {
     const ticketId = ticket.id;
+  async function handleListForResale(ticketId: string) {
+    if (!/^[1-9]\d*$/.test(resalePrice)) return;
+  async function handleListForResale(e: FormEvent, ticketId: string) {
+    e.preventDefault();
     const wallet = requireWallet();
     if (!wallet) return;
     const cap = maxResalePrice(ticket.ticketType?.price, ticket.event?.maxResaleMultiplierBps);
@@ -169,6 +199,8 @@ export default function MyTicketsPage() {
 
   if (loading || !user) return null;
 
+  const isValidResalePrice = /^[1-9]\d*$/.test(resalePrice);
+
   return (
     <div className="mx-auto max-w-3xl px-6 py-16">
       <h1 className="font-heading text-3xl font-bold">My tickets</h1>
@@ -185,6 +217,12 @@ export default function MyTicketsPage() {
 
       {loadingTickets ? (
         <p className="mt-8 text-muted">Loading…</p>
+      ) : loadFailed && tickets.length === 0 ? (
+        <div className="mt-8">
+          <Button onClick={retryLoad} variant="secondary" size="sm">
+            Retry
+          </Button>
+        </div>
       ) : tickets.length === 0 ? (
         <p className="mt-8 text-muted">You don’t have any tickets yet.</p>
       ) : (
@@ -204,39 +242,36 @@ export default function MyTicketsPage() {
                     </p>
                   )}
                 </div>
-                <span className="rounded-full border border-border px-2 py-0.5 text-xs text-muted">
-                  {ticket.status}
-                </span>
+                <StatusBadge status={ticket.status} />
               </div>
 
-              <p className="mt-3 flex items-center gap-1 text-xs text-muted">
-                Gate code:{' '}
-                <span className="font-mono text-foreground select-all">{ticket.qrSecret}</span>
-                <CopyButton value={ticket.qrSecret} label="Copy gate code" />
-              </p>
+              {ticket.status === 'VALID' ? (
+                <div className="mt-3">
+                  <TicketQr value={ticket.qrSecret} />
+                  <p className="mt-2 flex items-center gap-1 text-xs text-muted">
+                    Gate code:{' '}
+                    <span className="font-mono text-foreground select-all">{ticket.qrSecret}</span>
+                    <CopyButton value={ticket.qrSecret} label="Copy gate code" />
+                  </p>
+                </div>
+              ) : (
+                <p className="mt-3 text-xs text-muted">
+                  {ticket.status === 'RESALE'
+                    ? 'The gate code is hidden while this ticket is listed for resale.'
+                    : 'The gate code is no longer valid for this ticket.'}
+                </p>
+              )}
 
               {ticket.status === 'VALID' && (
                 <div className="mt-3 flex gap-3">
                   <button
-                    onClick={() =>
-                      setActiveAction((prev) =>
-                        prev?.ticketId === ticket.id && prev.type === 'transfer'
-                          ? null
-                          : { ticketId: ticket.id, type: 'transfer' },
-                      )
-                    }
+                    onClick={() => toggleAction(ticket.id, 'transfer')}
                     className="text-sm text-gradient font-medium hover:underline"
                   >
                     Transfer
                   </button>
                   <button
-                    onClick={() =>
-                      setActiveAction((prev) =>
-                        prev?.ticketId === ticket.id && prev.type === 'resell'
-                          ? null
-                          : { ticketId: ticket.id, type: 'resell' },
-                      )
-                    }
+                    onClick={() => toggleAction(ticket.id, 'resell')}
                     className="text-sm text-gradient font-medium hover:underline"
                   >
                     List for resale
@@ -254,9 +289,17 @@ export default function MyTicketsPage() {
               )}
 
               {activeAction?.ticketId === ticket.id && activeAction.type === 'transfer' && (
-                <div className="mt-3 flex gap-2">
+                <form
+                  onSubmit={(e) => handleTransfer(e, ticket.id)}
+                  className="mt-3 flex gap-2"
+                >
+                  <label htmlFor={`transfer-email-${ticket.id}`} className="sr-only">
+                    Recipient email
+                  </label>
                   <input
+                    id={`transfer-email-${ticket.id}`}
                     type="email"
+                    required
                     placeholder="recipient@example.com"
                     value={transferEmail}
                     onChange={(e) => {
@@ -289,23 +332,37 @@ export default function MyTicketsPage() {
                     size="sm"
                   >
                     {busyTicketId === ticket.id ? 'Sending…' : 'Confirm'}
+                  <Button type="submit" loading={busyTicketId === ticket.id} size="sm">
+                    {busyTicketId === ticket.id ? 'Sending…' : 'Send'}
                   </Button>
-                </div>
+                </form>
               )}
               {activeAction?.ticketId === ticket.id && activeAction.type === 'resell' && (
                 <div className="mt-3 flex flex-wrap gap-2">
+                <form
+                  onSubmit={(e) => handleListForResale(e, ticket.id)}
+                  className="mt-3 flex gap-2"
+                >
+                  <label htmlFor={`resale-price-${ticket.id}`} className="sr-only">
+                    Asking price
+                  </label>
                   <input
+                    id={`resale-price-${ticket.id}`}
                     inputMode="numeric"
+                    required
                     placeholder="Asking price"
                     value={resalePrice}
                     onChange={(e) => setResalePrice(e.target.value)}
+                    aria-invalid={resalePrice !== '' && !isValidResalePrice}
                     className="flex-1 rounded-md border border-border bg-surface px-3 py-2 text-sm"
                   />
                   <Button
                     onClick={() => handleListForResale(ticket)}
                     loading={busyTicketId === ticket.id}
+                    disabled={!isValidResalePrice}
                     size="sm"
                   >
+                  <Button type="submit" loading={busyTicketId === ticket.id} size="sm">
                     {busyTicketId === ticket.id ? 'Listing…' : 'List'}
                   </Button>
                   {maxResalePrice(ticket.ticketType?.price, ticket.event?.maxResaleMultiplierBps) !==
@@ -316,6 +373,7 @@ export default function MyTicketsPage() {
                     </p>
                   )}
                 </div>
+                </form>
               )}
             </li>
           ))}
