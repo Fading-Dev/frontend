@@ -87,16 +87,16 @@ export default function MarketplacePage() {
           {listings.map((listing) => (
             <li
               key={listing.id}
-              className="flex items-center justify-between rounded-lg border border-border p-4"
+              className="flex flex-col gap-3 rounded-lg border border-border p-4 sm:flex-row sm:items-center sm:justify-between"
             >
-              <div>
-                <p className="font-medium">{listing.ticket.event.name}</p>
-                <p className="text-sm text-muted">
+              <div className="min-w-0">
+                <p className="break-words font-medium">{listing.ticket.event.name}</p>
+                <p className="break-words text-sm text-muted">
                   {listing.ticket.ticketType.name} · {listing.ticket.event.venue} · sold by{' '}
                   {listing.seller.name}
                 </p>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex shrink-0 items-center gap-4">
                 <span className="font-mono">{listing.price}</span>
                 <Button
                   onClick={() => handleBuy(listing.ticketId)}
