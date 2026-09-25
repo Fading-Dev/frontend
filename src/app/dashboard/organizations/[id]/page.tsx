@@ -13,6 +13,7 @@ import {
 } from "@/lib/types";
 import { FormError } from "@/components/form-error";
 import { Button } from "@/components/button";
+import { StatusBadge } from "@/components/status-badge";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 
 // Resale cap is a multiplier of face value (100% = no markup allowed); royalty is a
@@ -144,7 +145,7 @@ export default function OrganizationPage({
               >
                 <div className="flex items-center justify-between">
                   <span className="font-medium">{event.name}</span>
-                  <span className="text-sm text-muted">{event.status}</span>
+                  <StatusBadge status={event.status} />
                 </div>
                 <p className="mt-1 text-sm text-muted">{event.venue}</p>
               </Link>

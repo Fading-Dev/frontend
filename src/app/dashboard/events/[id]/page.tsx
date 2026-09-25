@@ -9,6 +9,7 @@ import type { EventRecord, TicketType } from '@/lib/types';
 import { FormError } from '@/components/form-error';
 import { WalletConnectButton } from '@/components/wallet-connect-button';
 import { Button } from '@/components/button';
+import { StatusBadge } from '@/components/status-badge';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import { EventDetails } from '@/components/event-details';
 import { buildPublishSummary } from '@/lib/event-details';
@@ -169,9 +170,7 @@ export default function EventPage({ params }: { params: Promise<{ id: string }> 
       <p className="text-sm text-muted">{event.venue}</p>
       <div className="mt-1 flex items-center gap-3">
         <h1 className="font-heading text-3xl font-bold">{event.name}</h1>
-        <span className="rounded-full border border-border px-2 py-0.5 text-xs text-muted">
-          {event.status}
-        </span>
+        <StatusBadge status={event.status} />
       </div>
 
       <EventDetails event={event} />
