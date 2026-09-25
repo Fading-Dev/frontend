@@ -19,13 +19,20 @@ export default function DashboardPage() {
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [industry, setIndustry] = useState<(typeof INDUSTRIES)[number]>('CONCERTS');
-  const stellarAccountRef = useRef<HTMLInputElement>(null);
+  const [stellarAccount, setStellarAccount] = useState(user?.stellarPublicKey ?? '');
+  // True once the user edits the field, so wallet updates stop overriding their input.
+  const stellarAccountTouched = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) router.push('/login');
   }, [loading, user, router]);
+
+  useEffect(() => {
+    if (stellarAccountTouched.current) return;
+    setStellarAccount(user?.stellarPublicKey ?? '');
+  }, [user?.stellarPublicKey]);
 
   useEffect(() => {
     if (!user) return;
@@ -45,7 +52,7 @@ export default function DashboardPage() {
     try {
       const org = await apiFetch<Organization>('/organizations', {
         method: 'POST',
-        body: { name, slug, industry, stellarAccount: stellarAccountRef.current?.value ?? '' },
+        body: { name, slug, industry, stellarAccount },
       });
       setOrgs((prev) => [org, ...prev]);
       setName('');
@@ -128,11 +135,13 @@ export default function DashboardPage() {
         <label className="flex flex-col gap-1 text-sm">
           Stellar account (G…)
           <input
-            key={user.stellarPublicKey ?? 'no-wallet'}
-            ref={stellarAccountRef}
             required
             pattern="G[A-Z0-9]{55}"
-            defaultValue={user.stellarPublicKey ?? ''}
+            value={stellarAccount}
+            onChange={(e) => {
+              stellarAccountTouched.current = true;
+              setStellarAccount(e.target.value);
+            }}
             className="rounded-md border border-border bg-surface px-3 py-2 font-mono text-xs"
           />
           <span className="text-xs text-muted">
