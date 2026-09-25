@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Eye, EyeOff, ExternalLink } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { apiFetch, ApiError } from '@/lib/api';
 import { signAndSubmit } from '@/lib/onchain';
+import { ticketingContractUrl } from '@/lib/event-details';
 import type { Ticket } from '@/lib/types';
 import { FormError } from '@/components/form-error';
 import { CopyButton } from '@/components/copy-button';
@@ -12,6 +14,37 @@ import { WalletConnectButton } from '@/components/wallet-connect-button';
 import { Button } from '@/components/button';
 
 type ActiveAction = { ticketId: string; type: 'transfer' | 'resell' } | null;
+
+const POLL_INTERVAL_MS = 25_000;
+
+const CONTRACT_URL = ticketingContractUrl(
+  process.env.NEXT_PUBLIC_TICKETING_CONTRACT_ID,
+  process.env.NEXT_PUBLIC_STELLAR_NETWORK,
+);
+
+/** Gate code is a bearer credential for entry, so it stays masked until revealed. */
+function GateCode({ secret }: { secret: string }) {
+  const [revealed, setRevealed] = useState(false);
+  return (
+    <p className="mt-3 flex items-center gap-1 text-xs text-muted">
+      Gate code:{' '}
+      <span className="font-mono text-foreground select-all">
+        {revealed ? secret : '•'.repeat(12)}
+      </span>
+      <button
+        type="button"
+        onClick={() => setRevealed((v) => !v)}
+        aria-label={revealed ? 'Hide gate code' : 'Show gate code'}
+        aria-pressed={revealed}
+        title={revealed ? 'Hide gate code' : 'Show gate code'}
+        className="inline-flex items-center rounded p-1 text-muted hover:bg-surface hover:text-foreground"
+      >
+        {revealed ? <EyeOff size={14} aria-hidden="true" /> : <Eye size={14} aria-hidden="true" />}
+      </button>
+      <CopyButton value={secret} label="Copy gate code" />
+    </p>
+  );
+}
 
 export default function MyTicketsPage() {
   const { user, loading } = useAuth();
@@ -42,6 +75,25 @@ export default function MyTicketsPage() {
       setLoadingTickets(false);
     }
     void run();
+  }, [user]);
+
+  // Refresh while the tab is visible so check-ins and sales show up without a reload.
+  useEffect(() => {
+    if (!user) return;
+    async function refresh() {
+      if (document.visibilityState !== 'visible') return;
+      try {
+        setTickets(await apiFetch<Ticket[]>('/tickets/mine'));
+      } catch {
+        // Keep showing the last known tickets; the next poll will retry.
+      }
+    }
+    const timer = setInterval(() => void refresh(), POLL_INTERVAL_MS);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', refresh);
+    };
   }, [user]);
 
   function requireWallet(): string | null {
@@ -173,11 +225,19 @@ export default function MyTicketsPage() {
                 </span>
               </div>
 
-              <p className="mt-3 flex items-center gap-1 text-xs text-muted">
-                Gate code:{' '}
-                <span className="font-mono text-foreground select-all">{ticket.qrSecret}</span>
-                <CopyButton value={ticket.qrSecret} label="Copy gate code" />
-              </p>
+              <GateCode secret={ticket.qrSecret} />
+
+              {CONTRACT_URL && (
+                <a
+                  href={CONTRACT_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-3 inline-flex items-center gap-1 text-xs text-gradient font-medium hover:underline"
+                >
+                  View on-chain (ticket #{ticket.chainTicketId})
+                  <ExternalLink size={12} aria-hidden="true" />
+                </a>
+              )}
 
               {ticket.status === 'VALID' && (
                 <div className="mt-3 flex gap-3">
