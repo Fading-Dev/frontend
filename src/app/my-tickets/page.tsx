@@ -10,6 +10,8 @@ import { FormError } from '@/components/form-error';
 import { CopyButton } from '@/components/copy-button';
 import { WalletConnectButton } from '@/components/wallet-connect-button';
 import { Button } from '@/components/button';
+import { StatusBadge } from '@/components/status-badge';
+import { TicketQr } from '@/components/ticket-qr';
 
 type ActiveAction = { ticketId: string; type: 'transfer' | 'resell' } | null;
 
@@ -84,6 +86,7 @@ export default function MyTicketsPage() {
   }
 
   async function handleListForResale(ticketId: string) {
+    if (!/^[1-9]\d*$/.test(resalePrice)) return;
     const wallet = requireWallet();
     if (!wallet) return;
     setError(null);
@@ -139,6 +142,8 @@ export default function MyTicketsPage() {
 
   if (loading || !user) return null;
 
+  const isValidResalePrice = /^[1-9]\d*$/.test(resalePrice);
+
   return (
     <div className="mx-auto max-w-3xl px-6 py-16">
       <h1 className="font-heading text-3xl font-bold">My tickets</h1>
@@ -168,16 +173,25 @@ export default function MyTicketsPage() {
                     {ticket.ticketType?.name} · Seat {ticket.seat}
                   </p>
                 </div>
-                <span className="rounded-full border border-border px-2 py-0.5 text-xs text-muted">
-                  {ticket.status}
-                </span>
+                <StatusBadge status={ticket.status} />
               </div>
 
-              <p className="mt-3 flex items-center gap-1 text-xs text-muted">
-                Gate code:{' '}
-                <span className="font-mono text-foreground select-all">{ticket.qrSecret}</span>
-                <CopyButton value={ticket.qrSecret} label="Copy gate code" />
-              </p>
+              {ticket.status === 'VALID' ? (
+                <div className="mt-3">
+                  <TicketQr value={ticket.qrSecret} />
+                  <p className="mt-2 flex items-center gap-1 text-xs text-muted">
+                    Gate code:{' '}
+                    <span className="font-mono text-foreground select-all">{ticket.qrSecret}</span>
+                    <CopyButton value={ticket.qrSecret} label="Copy gate code" />
+                  </p>
+                </div>
+              ) : (
+                <p className="mt-3 text-xs text-muted">
+                  {ticket.status === 'RESALE'
+                    ? 'The gate code is hidden while this ticket is listed for resale.'
+                    : 'The gate code is no longer valid for this ticket.'}
+                </p>
+              )}
 
               {ticket.status === 'VALID' && (
                 <div className="mt-3 flex gap-3">
@@ -242,11 +256,13 @@ export default function MyTicketsPage() {
                     placeholder="Asking price"
                     value={resalePrice}
                     onChange={(e) => setResalePrice(e.target.value)}
+                    aria-invalid={resalePrice !== '' && !isValidResalePrice}
                     className="flex-1 rounded-md border border-border bg-surface px-3 py-2 text-sm"
                   />
                   <Button
                     onClick={() => handleListForResale(ticket.id)}
                     loading={busyTicketId === ticket.id}
+                    disabled={!isValidResalePrice}
                     size="sm"
                   >
                     {busyTicketId === ticket.id ? 'Listing…' : 'List'}
