@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildPublishSummary,
   formatEventDate,
   formatResaleCap,
   formatRoyalty,
@@ -30,6 +31,30 @@ describe('formatEventDate', () => {
     const out = formatEventDate('2026-06-20T19:00:00.000Z', 'en-GB', 'UTC');
     expect(out).toContain('20 Jun 2026');
     expect(out).toContain('19:00');
+  });
+});
+
+describe('buildPublishSummary', () => {
+  it('lists the key event details and resale cap before publishing', () => {
+    const summary = buildPublishSummary({
+      name: 'Summer Fest',
+      startsAt: '2026-06-20T19:00:00.000Z',
+      endsAt: '2026-06-21T00:00:00.000Z',
+      venue: 'Harbor Stage',
+      maxResaleMultiplierBps: 15_000,
+      ticketTypes: [
+        { name: 'VIP', quantityTotal: 25, price: '2000' },
+        { name: 'GA', quantityTotal: 100, price: '1000' },
+      ],
+    });
+
+    expect(summary).toContain('Summer Fest');
+    expect(summary).toContain('Harbor Stage');
+    expect(summary).toContain('VIP');
+    expect(summary).toContain('GA');
+    expect(summary).toContain('1.5× face value');
+    expect(summary).toContain('Date');
+    expect(summary).toContain('Venue');
   });
 });
 
