@@ -36,6 +36,11 @@ export default function OrganizationPage({
   const [events, setEvents] = useState<EventRecord[]>([]);
   const [loadingData, setLoadingData] = useState(true);
 
+  const [name, setName] = useState('');
+  const [category, setCategory] = useState<(typeof INDUSTRIES)[number]>('CONCERTS');
+  const [venue, setVenue] = useState('');
+  const [startsAt, setStartsAt] = useState('');
+  const [endsAt, setEndsAt] = useState('');
   const [name, setName] = useState("");
   const [category, setCategory] =
     useState<(typeof INDUSTRIES)[number]>("CONCERTS");
@@ -67,6 +72,8 @@ export default function OrganizationPage({
     e.preventDefault();
     setError(null);
 
+    if (endsAt && new Date(endsAt) <= new Date(startsAt)) {
+      setError('Ends at must be after Starts at');
     const resaleCap = Number(resaleCapPercent);
     const royalty = Number(royaltyPercent);
     if (
@@ -93,12 +100,21 @@ export default function OrganizationPage({
     setSubmitting(true);
     try {
       const event = await apiFetch<EventRecord>(`/organizations/${id}/events`, {
+        method: 'POST',
         method: "POST",
         body: {
           name,
           category,
           venue,
           startsAt: new Date(startsAt).toISOString(),
+          ...(endsAt ? { endsAt: new Date(endsAt).toISOString() } : {}),
+        },
+      });
+      setEvents((prev) => [event, ...prev]);
+      setName('');
+      setVenue('');
+      setStartsAt('');
+      setEndsAt('');
           maxResaleMultiplierBps: Math.round(resaleCap * 100),
           royaltyBps: Math.round(royalty * 100),
         },
@@ -202,6 +218,20 @@ export default function OrganizationPage({
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
+          Ends at
+          <input
+            type="datetime-local"
+            value={endsAt}
+            onChange={(e) => setEndsAt(e.target.value)}
+            className="rounded-md border border-border bg-surface px-3 py-2"
+          />
+        </label>
+        <Button
+          type="submit"
+          loading={submitting}
+          className="self-start"
+        >
+          {submitting ? 'Creating…' : 'Create event'}
           Resale cap (% of face value)
           <input
             required
