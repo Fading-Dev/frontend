@@ -43,6 +43,12 @@ export function formatResaleCap(bps: number): string {
     : `${multiplier}× face value`;
 }
 
+/** Resale cap for a ticket: price × bps / 10000 (whole units), or null when the price isn't an integer. */
+export function maxResalePrice(price: string | undefined, bps: number | undefined): string | null {
+  if (!price || bps === undefined || !/^\d+$/.test(price)) return null;
+  return ((BigInt(price) * BigInt(bps)) / BigInt(10_000)).toString();
+}
+
 /** Locale date + time, e.g. "Sat, 20 Jun 2026, 19:00". */
 export function formatEventDate(iso: string, locale?: string, timeZone?: string): string {
   return new Intl.DateTimeFormat(locale, {
