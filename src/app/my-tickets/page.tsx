@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { apiFetch, ApiError } from '@/lib/api';
@@ -18,6 +18,7 @@ export default function MyTicketsPage() {
   const router = useRouter();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loadingTickets, setLoadingTickets] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busyTicketId, setBusyTicketId] = useState<string | null>(null);
@@ -31,8 +32,14 @@ export default function MyTicketsPage() {
   }, [loading, user, router]);
 
   async function loadTickets() {
-    const res = await apiFetch<Ticket[]>('/tickets/mine');
-    setTickets(res);
+    try {
+      const res = await apiFetch<Ticket[]>('/tickets/mine');
+      setTickets(res);
+      setLoadFailed(false);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not load your tickets.');
+      setLoadFailed(true);
+    }
   }
 
   useEffect(() => {
@@ -44,6 +51,21 @@ export default function MyTicketsPage() {
     void run();
   }, [user]);
 
+  async function retryLoad() {
+    setError(null);
+    setLoadingTickets(true);
+    await loadTickets();
+    setLoadingTickets(false);
+  }
+
+  function toggleAction(ticketId: string, type: 'transfer' | 'resell') {
+    setActiveAction((prev) =>
+      prev?.ticketId === ticketId && prev.type === type ? null : { ticketId, type },
+    );
+    setTransferEmail('');
+    setResalePrice('');
+  }
+
   function requireWallet(): string | null {
     if (!user?.stellarPublicKey) {
       setError('Connect your wallet before managing tickets.');
@@ -52,7 +74,8 @@ export default function MyTicketsPage() {
     return user.stellarPublicKey;
   }
 
-  async function handleTransfer(ticketId: string) {
+  async function handleTransfer(e: FormEvent, ticketId: string) {
+    e.preventDefault();
     const wallet = requireWallet();
     if (!wallet) return;
     setError(null);
@@ -83,7 +106,8 @@ export default function MyTicketsPage() {
     }
   }
 
-  async function handleListForResale(ticketId: string) {
+  async function handleListForResale(e: FormEvent, ticketId: string) {
+    e.preventDefault();
     const wallet = requireWallet();
     if (!wallet) return;
     setError(null);
@@ -155,6 +179,12 @@ export default function MyTicketsPage() {
 
       {loadingTickets ? (
         <p className="mt-8 text-muted">Loading…</p>
+      ) : loadFailed && tickets.length === 0 ? (
+        <div className="mt-8">
+          <Button onClick={retryLoad} variant="secondary" size="sm">
+            Retry
+          </Button>
+        </div>
       ) : tickets.length === 0 ? (
         <p className="mt-8 text-muted">You don’t have any tickets yet.</p>
       ) : (
@@ -182,25 +212,13 @@ export default function MyTicketsPage() {
               {ticket.status === 'VALID' && (
                 <div className="mt-3 flex gap-3">
                   <button
-                    onClick={() =>
-                      setActiveAction((prev) =>
-                        prev?.ticketId === ticket.id && prev.type === 'transfer'
-                          ? null
-                          : { ticketId: ticket.id, type: 'transfer' },
-                      )
-                    }
+                    onClick={() => toggleAction(ticket.id, 'transfer')}
                     className="text-sm text-gradient font-medium hover:underline"
                   >
                     Transfer
                   </button>
                   <button
-                    onClick={() =>
-                      setActiveAction((prev) =>
-                        prev?.ticketId === ticket.id && prev.type === 'resell'
-                          ? null
-                          : { ticketId: ticket.id, type: 'resell' },
-                      )
-                    }
+                    onClick={() => toggleAction(ticket.id, 'resell')}
                     className="text-sm text-gradient font-medium hover:underline"
                   >
                     List for resale
@@ -218,40 +236,48 @@ export default function MyTicketsPage() {
               )}
 
               {activeAction?.ticketId === ticket.id && activeAction.type === 'transfer' && (
-                <div className="mt-3 flex gap-2">
+                <form
+                  onSubmit={(e) => handleTransfer(e, ticket.id)}
+                  className="mt-3 flex gap-2"
+                >
+                  <label htmlFor={`transfer-email-${ticket.id}`} className="sr-only">
+                    Recipient email
+                  </label>
                   <input
+                    id={`transfer-email-${ticket.id}`}
                     type="email"
+                    required
                     placeholder="recipient@example.com"
                     value={transferEmail}
                     onChange={(e) => setTransferEmail(e.target.value)}
                     className="flex-1 rounded-md border border-border bg-surface px-3 py-2 text-sm"
                   />
-                  <Button
-                    onClick={() => handleTransfer(ticket.id)}
-                    loading={busyTicketId === ticket.id}
-                    size="sm"
-                  >
+                  <Button type="submit" loading={busyTicketId === ticket.id} size="sm">
                     {busyTicketId === ticket.id ? 'Sending…' : 'Send'}
                   </Button>
-                </div>
+                </form>
               )}
               {activeAction?.ticketId === ticket.id && activeAction.type === 'resell' && (
-                <div className="mt-3 flex gap-2">
+                <form
+                  onSubmit={(e) => handleListForResale(e, ticket.id)}
+                  className="mt-3 flex gap-2"
+                >
+                  <label htmlFor={`resale-price-${ticket.id}`} className="sr-only">
+                    Asking price
+                  </label>
                   <input
+                    id={`resale-price-${ticket.id}`}
                     inputMode="numeric"
+                    required
                     placeholder="Asking price"
                     value={resalePrice}
                     onChange={(e) => setResalePrice(e.target.value)}
                     className="flex-1 rounded-md border border-border bg-surface px-3 py-2 text-sm"
                   />
-                  <Button
-                    onClick={() => handleListForResale(ticket.id)}
-                    loading={busyTicketId === ticket.id}
-                    size="sm"
-                  >
+                  <Button type="submit" loading={busyTicketId === ticket.id} size="sm">
                     {busyTicketId === ticket.id ? 'Listing…' : 'List'}
                   </Button>
-                </div>
+                </form>
               )}
             </li>
           ))}
