@@ -1,16 +1,32 @@
-'use client';
+"use client";
 
-import { use, useEffect, useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/auth-context';
-import { apiFetch, ApiError } from '@/lib/api';
-import { INDUSTRIES, INDUSTRY_LABELS, type EventRecord, type Organization } from '@/lib/types';
-import { FormError } from '@/components/form-error';
-import { Button } from '@/components/button';
-import { Breadcrumbs } from '@/components/breadcrumbs';
+import { use, useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/auth-context";
+import { apiFetch, ApiError } from "@/lib/api";
+import {
+  INDUSTRIES,
+  INDUSTRY_LABELS,
+  type EventRecord,
+  type Organization,
+} from "@/lib/types";
+import { FormError } from "@/components/form-error";
+import { Button } from "@/components/button";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 
-export default function OrganizationPage({ params }: { params: Promise<{ id: string }> }) {
+// Resale cap is a multiplier of face value (100% = no markup allowed); royalty is a
+// straightforward percentage of the resale price. Bounds are UI guardrails, not on-chain limits.
+const MIN_RESALE_CAP_PERCENT = 100;
+const MAX_RESALE_CAP_PERCENT = 1000;
+const MIN_ROYALTY_PERCENT = 0;
+const MAX_ROYALTY_PERCENT = 50;
+
+export default function OrganizationPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id } = use(params);
   const { user, loading } = useAuth();
   const router = useRouter();
@@ -19,15 +35,18 @@ export default function OrganizationPage({ params }: { params: Promise<{ id: str
   const [events, setEvents] = useState<EventRecord[]>([]);
   const [loadingData, setLoadingData] = useState(true);
 
-  const [name, setName] = useState('');
-  const [category, setCategory] = useState<(typeof INDUSTRIES)[number]>('CONCERTS');
-  const [venue, setVenue] = useState('');
-  const [startsAt, setStartsAt] = useState('');
+  const [name, setName] = useState("");
+  const [category, setCategory] =
+    useState<(typeof INDUSTRIES)[number]>("CONCERTS");
+  const [venue, setVenue] = useState("");
+  const [startsAt, setStartsAt] = useState("");
+  const [resaleCapPercent, setResaleCapPercent] = useState("120");
+  const [royaltyPercent, setRoyaltyPercent] = useState("5");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!loading && !user) router.push('/login');
+    if (!loading && !user) router.push("/login");
   }, [loading, user, router]);
 
   useEffect(() => {
@@ -46,18 +65,53 @@ export default function OrganizationPage({ params }: { params: Promise<{ id: str
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    const resaleCap = Number(resaleCapPercent);
+    const royalty = Number(royaltyPercent);
+    if (
+      !Number.isFinite(resaleCap) ||
+      resaleCap < MIN_RESALE_CAP_PERCENT ||
+      resaleCap > MAX_RESALE_CAP_PERCENT
+    ) {
+      setError(
+        `Resale cap must be between ${MIN_RESALE_CAP_PERCENT}% and ${MAX_RESALE_CAP_PERCENT}% of face value.`,
+      );
+      return;
+    }
+    if (
+      !Number.isFinite(royalty) ||
+      royalty < MIN_ROYALTY_PERCENT ||
+      royalty > MAX_ROYALTY_PERCENT
+    ) {
+      setError(
+        `Royalty must be between ${MIN_ROYALTY_PERCENT}% and ${MAX_ROYALTY_PERCENT}%.`,
+      );
+      return;
+    }
+
     setSubmitting(true);
     try {
       const event = await apiFetch<EventRecord>(`/organizations/${id}/events`, {
-        method: 'POST',
-        body: { name, category, venue, startsAt: new Date(startsAt).toISOString() },
+        method: "POST",
+        body: {
+          name,
+          category,
+          venue,
+          startsAt: new Date(startsAt).toISOString(),
+          maxResaleMultiplierBps: Math.round(resaleCap * 100),
+          royaltyBps: Math.round(royalty * 100),
+        },
       });
       setEvents((prev) => [event, ...prev]);
-      setName('');
-      setVenue('');
-      setStartsAt('');
+      setName("");
+      setVenue("");
+      setStartsAt("");
+      setResaleCapPercent("120");
+      setRoyaltyPercent("5");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Could not create the event.');
+      setError(
+        err instanceof ApiError ? err.message : "Could not create the event.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -69,7 +123,10 @@ export default function OrganizationPage({ params }: { params: Promise<{ id: str
     <div className="mx-auto max-w-3xl px-6 py-16">
       <Breadcrumbs
         className="mb-6"
-        items={[{ label: 'Dashboard', href: '/dashboard' }, { label: org.name }]}
+        items={[
+          { label: "Dashboard", href: "/dashboard" },
+          { label: org.name },
+        ]}
       />
       <p className="text-sm text-muted">{INDUSTRY_LABELS[org.industry]}</p>
       <h1 className="font-heading text-3xl font-bold">{org.name}</h1>
@@ -112,7 +169,9 @@ export default function OrganizationPage({ params }: { params: Promise<{ id: str
           Category
           <select
             value={category}
-            onChange={(e) => setCategory(e.target.value as (typeof INDUSTRIES)[number])}
+            onChange={(e) =>
+              setCategory(e.target.value as (typeof INDUSTRIES)[number])
+            }
             className="rounded-md border border-border bg-surface px-3 py-2"
           >
             {INDUSTRIES.map((i) => (
@@ -141,12 +200,45 @@ export default function OrganizationPage({ params }: { params: Promise<{ id: str
             className="rounded-md border border-border bg-surface px-3 py-2"
           />
         </label>
-        <Button
-          type="submit"
-          loading={submitting}
-          className="self-start"
-        >
-          {submitting ? 'Creating…' : 'Create event'}
+        <label className="flex flex-col gap-1 text-sm">
+          Resale cap (% of face value)
+          <input
+            required
+            type="number"
+            inputMode="decimal"
+            min={MIN_RESALE_CAP_PERCENT}
+            max={MAX_RESALE_CAP_PERCENT}
+            step="1"
+            value={resaleCapPercent}
+            onChange={(e) => setResaleCapPercent(e.target.value)}
+            className="rounded-md border border-border bg-surface px-3 py-2"
+          />
+          <span className="text-xs text-muted">
+            The most a ticket can resell for, as a percentage of face value. 120
+            means resales are capped at 1.2× face value; 100 means no markup is
+            allowed.
+          </span>
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          Organizer royalty on resale (%)
+          <input
+            required
+            type="number"
+            inputMode="decimal"
+            min={MIN_ROYALTY_PERCENT}
+            max={MAX_ROYALTY_PERCENT}
+            step="0.1"
+            value={royaltyPercent}
+            onChange={(e) => setRoyaltyPercent(e.target.value)}
+            className="rounded-md border border-border bg-surface px-3 py-2"
+          />
+          <span className="text-xs text-muted">
+            Percentage of each resale that&apos;s paid to you automatically
+            on-chain. Set to 0 for no royalty.
+          </span>
+        </label>
+        <Button type="submit" loading={submitting} className="self-start">
+          {submitting ? "Creating…" : "Create event"}
         </Button>
       </form>
     </div>
